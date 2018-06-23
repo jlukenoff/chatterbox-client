@@ -2,16 +2,14 @@
 //create app object
 var app = {
   //create init method
-  init: function() {
-    //make a GET request
-    //parse messages
-    //mount to DOM
+  init: function(currentRoom = '4chan') {
+    app.currentRoom = currentRoom;
+    $('#roomSelect').val(currentRoom);
+    app.fetch();
+    app.fetchCurrentRooms();
   },
   
   send: function(message) {  
-  //create send method
-    //receive a message object
-    //pass to a POST request
     $.ajax({
     // This is the url you should use to communicate with the parse API server.
       url: 'http://parse.sfm8.hackreactor.com/chatterbox/classes/messages',
@@ -20,6 +18,8 @@ var app = {
       contentType: 'application/json',
       success: function (data) {
         console.log('chatterbox: Message sent');
+        app.clearMessages();
+        app.fetch();
       },
       error: function (data) {
         // See: https://developer.mozilla.org/en-US/docs/Web/API/console.error
@@ -31,19 +31,19 @@ var app = {
   fetch: function() {
     $.ajax({
     // This is the url you should use to communicate with the parse API server.
-      url: 'http://parse.sfm8.hackreactor.com/chatterbox/classes/messages',
+      url: app.server,
       type: 'GET',
       contentType: 'application/json',
       success: function (data) {
         let messageData = data.results;
-        console.log(messageData);
-        //iterate through messageData
+        //console.log(data.results);
         var messages = messageData.filter(function(obj) {
           return obj.roomname === app.currentRoom;
         });
-          //filter messages without current room
-          // convert messages to nodes
-          //append to DOM
+        _.each(messages, function(message) {
+          message.text = app.messageFilter(message.text);
+          app.renderMessage(message);
+        });
       },
       error: function (data) {
         // See: https://developer.mozilla.org/en-US/docs/Web/API/console.error
@@ -55,7 +55,7 @@ var app = {
   fetchCurrentRooms: function() {
     $.ajax({
     // This is the url you should use to communicate with the parse API server.
-      url: 'http://parse.sfm8.hackreactor.com/chatterbox/classes/messages',
+      url: app.server,
       type: 'GET',
       contentType: 'application/json',
       success: function (data) {
@@ -66,7 +66,11 @@ var app = {
         var uniqueRooms = _.uniq(allRooms);
         
         _.each(uniqueRooms, function(room) {
-          app.renderRoom(room);
+          if (room === app.currentRoom) {
+            $('#roomSelect').append(`<option selected="selected" value=${room}>${room}</option>`);
+          } else {
+            app.renderRoom(room);
+          }
         });
 
       },
@@ -82,27 +86,54 @@ var app = {
   },
   
   renderMessage: function(message) {
-    $('#chats').append($(`<p>${message.username}: ${message.text}</p>`));
-    //fetch message data
-    //filter out non-matching chatroom messages
-    //convert to DOM nodes
-    //append to #chats
+    $('#chats').prepend($(`<div class="chat"><span class="username">${message.username}:</span><p>${message.text}</p></div>`));
   },
   
   renderRoom: function(room) {
-    $('#roomSelect').append(`<option id="${room}Option">${room}</option>`);
+    $('#roomSelect').append(`<option value="${room}">${room}</option>`);
     //GET message data from server
     //parse through message data and generate list of rooms
     //convert rooms to nodes and append to chats
   },
   
-  server: 'http://parse.sfm8.hackreactor.com/chatterbox/classes/messages',
+  server: 'http://parse.sfm8.hackreactor.com/chatterbox/classes/messages?order=-createdAt',
   
-  currentRoom: '',
+  currentRoom: $('#roomSelect').val(),
+  
+  messageFilter: function(text) {
+    return text.replace(/\</g, '&lt;').replace(/\>/g, '&gt;').replace(/\$/g, '&#36;');
+  },
   
   selectRoom: function(roomName) {
     //clear chats div
     //update room name
     //call fetch to append messages to DOM
+  },
+  
+  handleSubmit: function() {
+    console.log('sdcsdc')
+    let $message = $('.userInput').val();
+    var userData = {
+      username: window.location.search.slice(10),
+      text: $message,
+      roomname: app.currentName
+    };
+    app.send(userData);
+    app.renderMessage(userData);
   }
 };
+
+
+
+$(document).ready(function() {
+  app.init();
+  $('.submit').on('click', app.handleSubmit);
+  
+  $('#roomSelect').on('change', function() {
+    app.currentRoom = $('#roomSelect').val();
+    app.clearMessages();
+    app.fetch();
+  });
+  
+  // $('username')
+});
