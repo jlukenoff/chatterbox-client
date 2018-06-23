@@ -18,6 +18,8 @@
     "bower_components",
     "test",
     "tests"
-  ]
+  ],
+  "resolutions": {
+    "underscore": "~1.7.0"
+  }
 }
-
