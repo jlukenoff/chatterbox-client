@@ -96,5 +96,6 @@ form input[type=text] {
 
 #roomSelect {
     margin-bottom: 5px;
+    width: 200px;
 }
 
